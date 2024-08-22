@@ -17,64 +17,80 @@
   "browserSupport": "gcsv",
   "priority": 100,
   "inRepository": false,
-  "lastUpdated": "2024-08-22 17:03:43"
+  "lastUpdated": "2024-08-22 22:02:54"
 }
 
-const ROOT = '/Users/emile/Downloads';
+// Components.utils.import("resource://gre/modules/FileUtils.jsm");
+const ROOT = ['Downloads', 'My Library'];
 function debug(msg) {
     Zotero.debug(`DevonThink: ${msg}`);
 }
 class Collections {
     constructor() {
-        this.path = {};
+        var _a;
         this.saved = new Set;
+        this.collection = {
+            $: {
+                type: 'collection',
+                name: '',
+                key: '',
+                children: [],
+                path: [],
+            }
+        };
         let coll;
         while (coll = Zotero.nextCollection()) {
-            this.register(coll);
+            this.collection.$.children.push(this.walk({
+                type: 'collection',
+                name: coll.name,
+                key: ((_a = coll.primary) === null || _a === void 0 ? void 0 : _a.key) || coll.key,
+                children: coll.descendents || coll.children,
+                path: [], // dummy
+            }));
         }
+        debug(JSON.stringify(this.collection.$, null, 2));
     }
-    join(...p) {
-        return p.filter(_ => _).join('/');
-    }
-    register(collection, path) {
-        const key = (collection.primary ? collection.primary : collection).key;
-        const children = collection.children || collection.descendents || [];
-        const collections = children.filter(coll => coll.type === 'collection');
-        const name = this.clean(collection.name);
-        this.path[key] = this.join(path, name);
-        for (collection of collections) {
-            this.register(collection, this.path[key]);
+    walk(collection, parent = []) {
+        this.collection[collection.key] = collection;
+        collection.path = [...parent, collection.name].filter(_ => _);
+        for (const child of collection.children) {
+            if (child.type === 'collection') {
+                this.walk(child, collection.path);
+            }
         }
+        return collection;
     }
-    clean(filename) {
-        return filename.replace(/[\x00-\x1F\x7F\/\\:*?"<>|$%]/g, encodeURIComponent);
+    clean(...filenames) {
+        return filenames.map(filename => filename.replace(/[\x00-\x1F\x7F\/\\:*?"<>|$%]/g, encodeURIComponent)).filter(_ => _);
     }
     split(filename) {
         const dot = filename.lastIndexOf('.');
         return (dot < 1 || dot === (filename.length - 1)) ? [filename, ''] : [filename.substring(0, dot), filename.substring(dot)];
     }
     save(item, saveNote) {
-        const attachments = (item.itemType === 'attachment') ? [item] : (item.attachments || []);
-        const notes = (item.itemType === 'note') ? [item] : (item.notes || []);
-        let collections = (item.collections || []).map(key => this.path[key]).filter(coll => coll);
+        const folder = item.itemType === 'note' ? '' : item.title;
+        const attachments = item.itemType === 'attachment' ? [item] : (item.attachments || []);
+        const notes = item.itemType === 'note' ? [item] : (item.notes || []);
+        const collections = (item.collections || []).map(key => this.collection[key]).filter(_ => _);
         if (!collections.length)
-            collections = ['']; // if the item is not in a collection, save it in the root.
-        for (const att of attachments) {
-            if (!att.defaultPath)
-                continue;
-            const [base, ext] = this.split(this.clean(att.filename));
-            const subdir = att.contentType === 'text/html' ? base : '';
-            for (const coll of collections) {
-                const path = this.join(coll, subdir, base);
-                let filename = `${path}${ext}`;
-                let postfix = 0;
-                while (this.saved.has(filename.toLowerCase())) {
-                    filename = `${path}_${++postfix}${ext}`;
-                }
-                this.saved.add(filename.toLowerCase());
-                if (Zotero.getOption('exportFileData'))
+            collections.push(this.collection.$); // if the item is not in a collection, save it in the root.
+        if (Zotero.getOption('exportFileData')) {
+            for (const att of attachments) {
+                if (!att.defaultPath)
+                    continue;
+                const [base, ext] = this.split(att.filename);
+                const subdir = att.contentType === 'text/html' ? base : '';
+                for (const coll of collections) {
+                    const path = this.clean(...coll.path, folder, subdir, base).join('/');
+                    let filename = `${path}${ext}`;
+                    let postfix = 0;
+                    while (this.saved.has(filename.toLowerCase())) {
+                        filename = `${path}_${++postfix}${ext}`;
+                    }
+                    this.saved.add(filename.toLowerCase());
                     att.saveFile(filename, true);
-                Zotero.write(`${filename}\n`);
+                    Zotero.write(`${filename}\n`);
+                }
             }
         }
         if (Zotero.getOption('exportNotes')) {
@@ -86,15 +102,18 @@ class Collections {
                         continue;
                     if (body.firstChild instanceof Element && body.firstChild.tagName === 'DIV' && body.firstChild.getAttribute('data-schema-version') && body.children.length === 1)
                         body = body.firstChild;
-                    const title = this.clean(body.firstChild instanceof Element && body.firstChild.tagName.match(/^(P|H1)$/) && body.firstChild.textContent ? body.firstChild.textContent : 'note');
-                    const path = this.join(ROOT, coll, title);
+                    let basename = body.firstChild instanceof Element && body.firstChild.tagName.match(/^(P|H1)$/) && body.firstChild.textContent ? body.firstChild.textContent : 'note';
+                    const path = this.clean(...ROOT, ...coll.path, folder, basename).join('/');
                     let filename = `${path}.html`;
                     let postfix = 0;
                     while (this.saved.has(filename.toLowerCase())) {
                         filename = `${path}_${++postfix}.html`;
                     }
                     this.saved.add(filename.toLowerCase());
-                    saveNote(filename, note.note);
+                    Zotero.write(`${filename}\n`);
+                    if (postfix)
+                        basename += `_${postfix}`;
+                    saveNote(this.clean(...ROOT, ...coll.path, folder), `${basename}.html`, note.note);
                 }
             }
         }
@@ -104,9 +123,11 @@ function doExport() {
     if (!Zotero.getOption('exportFileData'))
         throw new Error('DevonThink needs "Export File Data" to be on');
     const collections = new Collections;
-    const saveNote = (filename, body) => {
-        // Components.utils.import("resource://gre/modules/FileUtils.jsm");
-        const file = new this.FileUtils.File(filename);
+    const home = this.Components.classes['@mozilla.org/file/directory_service;1'].getService(this.Components.interfaces.nsIProperties).get('Home', this.Components.interfaces.nsIFile);
+    const saveNote = (folder, filename, body) => {
+        // create parent folder as a side effect
+        const file = this.FileUtils.getDir('Home', folder, true, false);
+        file.append(filename);
         if (file.exists())
             file.remove(null);
         const fos = this.Components.classes['@mozilla.org/network/file-output-stream;1'].createInstance(this.Components.interfaces.nsIFileOutputStream);
