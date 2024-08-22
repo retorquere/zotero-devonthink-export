@@ -6,6 +6,7 @@ When installed in Zotero, this translator will allow exporting attachments and n
 
 1. Download the [DevonThink.js](https://raw.githubusercontent.com/retorquere/zotero-devonthink-export/master/DevonThink.js) file from [zotero-devonthink-export](https://github.com/retorquere/zotero-devonthink-export) GitHub page
 2. Edit the ROOT location at the top. This
+    * is relative to the user home directory (this cannot be changed)
     * must match the folder you will be exporting to, and
     * if you are exporting attachments, the ROOT must match [ `<the folder you are exporting to>`, `<"My Library" or the collection name you are exporting>` ]
 3. Update `lastUpdated` to the current date/time`
