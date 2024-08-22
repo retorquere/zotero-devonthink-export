@@ -127,8 +127,6 @@ class Collections {
 }
 
 function doExport() {
-  if (!Zotero.getOption('exportFileData')) throw new Error('DevonThink needs "Export File Data" to be on')
-
   const collections = new Collections
 
   const home = this.Components.classes['@mozilla.org/file/directory_service;1'].getService(this.Components.interfaces.nsIProperties).get('Home', this.Components.interfaces.nsIFile)
