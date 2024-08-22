@@ -9,9 +9,9 @@ When installed in Zotero, this translator will allow exporting attachments and n
     * is relative to the user home directory (this cannot be changed)
     * must match the folder you will be exporting to, and
     * if you are exporting attachments, the ROOT must match [ `<the folder you are exporting to>`, `<the filename you chose>` ] (by default this is "My Library" or the collection name you are exporting)
-3. Update `lastUpdated` to the current date/time`
-3. Move the "DevonThink.js" file to "[User home directory]/Zotero/translators" folder 
-4. Restart Zotero 
+3. Update `lastUpdated` to the current date/time
+4. Move the "DevonThink.js" file to "[User home directory]/Zotero/translators" folder 
+5. Restart Zotero 
 
 **How to run**
 
