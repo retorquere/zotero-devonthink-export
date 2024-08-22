@@ -129,7 +129,6 @@ class Collections {
 function doExport() {
   const collections = new Collections
 
-  const home = this.Components.classes['@mozilla.org/file/directory_service;1'].getService(this.Components.interfaces.nsIProperties).get('Home', this.Components.interfaces.nsIFile)
   const saveNote = (folder: string[], filename: string, body: string) => {
     // create parent folder as a side effect
     const file = this.FileUtils.getDir('Home', folder, true, false)

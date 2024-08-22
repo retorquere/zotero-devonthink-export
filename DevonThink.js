@@ -17,7 +17,7 @@
   "browserSupport": "gcsv",
   "priority": 100,
   "inRepository": false,
-  "lastUpdated": "2024-08-22 23:04:23"
+  "lastUpdated": "2024-08-22 23:07:42"
 }
 
 // Components.utils.import("resource://gre/modules/FileUtils.jsm");
@@ -121,7 +121,6 @@ class Collections {
 }
 function doExport() {
     const collections = new Collections;
-    const home = this.Components.classes['@mozilla.org/file/directory_service;1'].getService(this.Components.interfaces.nsIProperties).get('Home', this.Components.interfaces.nsIFile);
     const saveNote = (folder, filename, body) => {
         // create parent folder as a side effect
         const file = this.FileUtils.getDir('Home', folder, true, false);
