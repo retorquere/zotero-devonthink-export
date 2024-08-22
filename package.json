@@ -1,0 +1,24 @@
+{
+  "name": "zotero-devonthink-export",
+  "version": "1.0.0",
+  "description": "Export files according to collection organisation",
+  "main": "DevonThink.js",
+  "scripts": {
+    "start": "tsc --target ES2017 --moduleResolution node 'DevonThink.ts' && node header.js",
+    "test": "npm start && rm -rf 'My Library.txt' && cp 'DevonThink.js'  ~/.BBTTEST/zotero/translators/",
+    "push": "npm start && git add . && git commit -m update && git push"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/retorquere/zotero-devonthink-export.git"
+  },
+  "author": "Emiliano Heyns",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/retorquere/zotero-devonthink-export/issues"
+  },
+  "homepage": "https://github.com/retorquere/zotero-devonthink-export#readme",
+  "dependencies": {
+    "typescript": "^5.5.4"
+  }
+}
