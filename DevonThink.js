@@ -20,7 +20,7 @@
   "lastUpdated": "2024-08-26 20:38:46"
 }
 
-const VERSION = 'b2272f6'
+const VERSION = '4653ea8'
 
 // Components.utils.import("resource://gre/modules/FileUtils.jsm");
 const ROOT = ['Downloads', 'Exported Items'];
