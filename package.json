@@ -4,7 +4,7 @@
   "description": "Export files according to collection organisation",
   "main": "DevonThink.js",
   "scripts": {
-    "start": "tsc --target ES2017 --moduleResolution node 'DevonThink.ts' && node header.js",
+    "start": "tsc --target ES2017 --moduleResolution node 'DevonThink.ts' && VERSION=`git rev-parse --short HEAD` node header.js",
     "test": "npm start && rm -rf 'My Library.txt' && cp 'DevonThink.js'  ~/.BBTTEST/zotero/translators/",
     "push": "npm start && git add . && git commit -m update && git push"
   },
