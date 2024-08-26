@@ -17,7 +17,7 @@
   "browserSupport": "gcsv",
   "priority": 100,
   "inRepository": false,
-  "lastUpdated": "2024-08-26 08:06:40"
+  "lastUpdated": "2024-08-26 08:08:06"
 }
 
 // Components.utils.import("resource://gre/modules/FileUtils.jsm");
@@ -76,7 +76,10 @@ class Collections {
                 case 'attachments':
                     continue;
             }
-            table += `<tr><td>${field}</td></tr>`;
+            if (typeof value !== 'string') {
+                value = `${field} is ${typeof value}`;
+            }
+            table += `<tr><td>${field}</td><td>${value}</td></tr>`;
         }
         table += '</table>';
         return table;

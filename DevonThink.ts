@@ -74,7 +74,10 @@ class Collections {
         case 'attachments':
           continue
       }
-      table += `<tr><td>${ field }</td></tr>`
+      if (typeof value !== 'string') {
+        value = `${field} is ${typeof value}`
+      }
+      table += `<tr><td>${ field }</td><td>${ value }</td></tr>`
     }
     table += '</table>'
     return table
