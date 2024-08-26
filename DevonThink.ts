@@ -58,7 +58,7 @@ class Collections {
   }
 
   clean(...filenames: string[]): string[] {
-    return filenames.map(filename => filename.replace(/[\/\\:*?"<>|$%]/g, ch => encodeURIComponent(ch))).filter(_ => _)
+    return filenames.map(filename => (filename || '').replace(/[\/\\:*?"<>|$%]/g, ch => encodeURIComponent(ch))).filter(_ => _)
   }
 
   split(filename) {
@@ -74,7 +74,7 @@ class Collections {
     if (!item.itemType.match(/^(note|attachment)$/)) item.itemType = 'item'
     const folder = item.itemType === 'item' ? item.title : ''
     const attachments = item.itemType === 'attachment' ? [ item ] : (item.attachments || [])
-    const notes = item.itemType === 'note' ? [ item ] : (item.notes || [])
+    const notes = item.itemType === 'note' ? [ item ] : (item.notes || []).map(note => ({ ...note, folder }))
 
     const collections = (item.collections || []).map(key => this.collection[key]).filter(_ => _)
     if (!collections.length) collections.push(this.collection.$) // if the item is not in a collection, save it in the root.
@@ -123,8 +123,8 @@ class Collections {
       }
     }
 
-    if (Zotero.getOption('exportNotes')) {
-      for (const note of notes) {
+    for (const note of notes) {
+      if (Zotero.getOption('exportNotes') || note.itemType === 'item') {
         for (const coll of collections) {
           let body: Document | Element = new DOMParser().parseFromString(note.note, 'text/html')
           body = body.querySelector('body') || body
@@ -141,7 +141,7 @@ class Collections {
             : 'note'
           }
 
-          const parts = this.clean(...ROOT, ...coll.path, note.itemType === 'item' ? '' : folder, basename)
+          const parts = this.clean(...ROOT, ...coll.path, note.folder, basename)
           const path = parts.join('/')
           let filename = `${path}.html`
           let postfix = 0
@@ -155,7 +155,7 @@ class Collections {
           if (postfix) filename += `_${postfix}`
           filename += '.html'
 
-          save(this.clean(...ROOT, ...coll.path, note.itemType === 'item' ? '' : folder), filename, note.note)
+          save(this.clean(...ROOT, ...coll.path, note.folder), filename, note.note)
         }
       }
     }
