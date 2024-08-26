@@ -17,10 +17,10 @@
   "browserSupport": "gcsv",
   "priority": 100,
   "inRepository": false,
-  "lastUpdated": "2024-08-26 12:59:37"
+  "lastUpdated": "2024-08-26 13:30:05"
 }
 
-const VERSION = '57c8720'
+const VERSION = 'b2272f6'
 
 // Components.utils.import("resource://gre/modules/FileUtils.jsm");
 const ROOT = ['Downloads', 'Exported Items'];
@@ -164,9 +164,9 @@ class Collections {
                         save(this.clean(...ROOT, ...coll.path, folder), filename, `{ URL = "${att.url}"; }`);
                     }
                     else {
+                        Zotero.write(`${filename}\n`);
                         att.saveFile(filename, true);
                     }
-                    Zotero.write(`${filename}\n`);
                 }
             }
         }
@@ -209,11 +209,12 @@ class Collections {
 }
 function doExport() {
     const collections = new Collections;
+    Zotero.write(`exported with ${VERSION}\n`);
     const save = (folder, filename, body) => {
-        debug({ folder, filename });
         // create parent folder as a side effect
         const file = this.FileUtils.getDir('Home', folder, true, false);
         file.append(filename);
+        Zotero.write(file.path);
         if (file.exists())
             file.remove(null);
         const fos = this.Components.classes['@mozilla.org/network/file-output-stream;1'].createInstance(this.Components.interfaces.nsIFileOutputStream);
