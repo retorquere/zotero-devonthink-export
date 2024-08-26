@@ -67,7 +67,7 @@ class Collections {
   }
 
   item(item) {
-    return 'item'
+    return typeof item
   }
 
   public save(item, save) {

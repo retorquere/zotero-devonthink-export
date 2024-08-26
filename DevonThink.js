@@ -17,7 +17,7 @@
   "browserSupport": "gcsv",
   "priority": 100,
   "inRepository": false,
-  "lastUpdated": "2024-08-26 07:32:59"
+  "lastUpdated": "2024-08-26 07:51:59"
 }
 
 // Components.utils.import("resource://gre/modules/FileUtils.jsm");
@@ -69,7 +69,7 @@ class Collections {
         return (dot < 1 || dot === (filename.length - 1)) ? [filename, ''] : [filename.substring(0, dot), filename.substring(dot)];
     }
     item(item) {
-        return 'item';
+        return typeof item;
     }
     save(item, save) {
         if (!item.itemType.match(/^(note|attachment)$/))
