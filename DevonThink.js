@@ -17,7 +17,7 @@
   "browserSupport": "gcsv",
   "priority": 100,
   "inRepository": false,
-  "lastUpdated": "2024-08-26 13:30:05"
+  "lastUpdated": "2024-08-26 20:38:46"
 }
 
 const VERSION = 'b2272f6'
@@ -120,17 +120,24 @@ class Collections {
         table += '</table>';
         return table;
     }
+    webloc(item) {
+        const [, kind, lib, key] = item.uri.match(/^https?:\/\/zotero\.org\/(users|groups)\/((?:local\/)?[^/]+)\/items\/(.+)/);
+        const url = (kind === 'users') ? `zotero://select/library/items/${key}` : `zotero://select/groups/${lib}/items/${key}`;
+        return `{ URL = "${url}"; }`;
+    }
     save(item, save) {
         if (!item.itemType.match(/^(note|attachment)$/))
             item.itemType = 'item';
         const folder = item.itemType === 'item' ? item.title : '';
         const attachments = item.itemType === 'attachment' ? [item] : (item.attachments || []);
-        const notes = item.itemType === 'note' ? [item] : (item.notes || []).map(note => (Object.assign(Object.assign({}, note), { folder })));
+        const notes = item.itemType === 'note' ? [item] : (item.notes || []);
         const collections = (item.collections || []).map(key => this.collection[key]).filter(_ => _);
         if (!collections.length)
             collections.push(this.collection.$); // if the item is not in a collection, save it in the root.
-        if (item.itemType === 'item')
-            notes.push(Object.assign(Object.assign({}, item), { note: this.item(item) }));
+        if (item.itemType === 'item') {
+            notes.push(Object.assign(Object.assign({}, item), { item: this.item(item) }));
+            notes.push(Object.assign(Object.assign({}, item), { webloc: this.webloc(item) }));
+        }
         if (Zotero.getOption('exportFileData')) {
             for (const att of attachments) {
                 let base, ext;
@@ -170,39 +177,51 @@ class Collections {
                 }
             }
         }
-        for (const note of notes) {
-            if (Zotero.getOption('exportNotes') || note.itemType === 'item') {
-                for (const coll of collections) {
-                    let body = new DOMParser().parseFromString(note.note, 'text/html');
-                    body = body.querySelector('body') || body;
-                    if (!body.firstChild)
-                        continue;
-                    if (body.firstChild instanceof Element && body.firstChild.tagName === 'DIV' && body.firstChild.getAttribute('data-schema-version') && body.children.length === 1)
-                        body = body.firstChild;
-                    let basename;
-                    if (note.itemType === 'item') {
-                        basename = note.title || 'item';
-                    }
-                    else {
-                        basename = body.firstChild instanceof Element && body.firstChild.tagName.match(/^(P|H1)$/) && body.firstChild.textContent
-                            ? body.firstChild.textContent
-                            : 'note';
-                    }
-                    const parts = this.clean(...ROOT, ...coll.path, note.folder, basename);
-                    const path = parts.join('/');
-                    let filename = `${path}.html`;
-                    let postfix = 0;
-                    while (this.saved.has(filename.toLowerCase())) {
-                        filename = `${path}_${++postfix}.html`;
-                    }
-                    this.saved.add(filename.toLowerCase());
-                    Zotero.write(`${filename}\n`);
-                    filename = parts.pop();
-                    if (postfix)
-                        filename += `_${postfix}`;
-                    filename += '.html';
-                    save(this.clean(...ROOT, ...coll.path, note.folder), filename, note.note);
+        const ignore = ['', '', ''];
+        const note2body = (item) => {
+            if (item.webloc)
+                return ['zotero', item.webloc, '.webloc'];
+            if (item.note || item.item) {
+                if (item.note && !Zotero.getOption('exportNotes'))
+                    return ignore;
+                let body = new DOMParser().parseFromString(item.note || item.item, 'text/html');
+                body = body.querySelector('body') || body;
+                if (!body.firstChild)
+                    return ignore;
+                if (body.firstChild instanceof Element && body.firstChild.tagName === 'DIV' && body.firstChild.getAttribute('data-schema-version') && body.children.length === 1)
+                    body = body.firstChild;
+                if (!body.textContent)
+                    return ignore;
+                let basename;
+                if (item.item) {
+                    basename = item.title || 'item';
                 }
+                else {
+                    basename = body.firstChild instanceof Element && body.firstChild.tagName.match(/^(P|H1)$/) && body.firstChild.textContent;
+                    basename = basename || 'note';
+                }
+                return [basename, item.note || item.item, '.html'];
+            }
+        };
+        for (const item of notes) {
+            const [basename, body, ext] = note2body(item);
+            if (!basename)
+                continue;
+            for (const coll of collections) {
+                const parts = this.clean(...ROOT, ...coll.path, folder, basename);
+                const path = parts.join('/');
+                let filename = `${path}.html`;
+                let postfix = 0;
+                while (this.saved.has(filename.toLowerCase())) {
+                    filename = `${path}_${++postfix}${ext}`;
+                }
+                this.saved.add(filename.toLowerCase());
+                Zotero.write(`${filename}\n`);
+                filename = parts.pop();
+                if (postfix)
+                    filename += `_${postfix}`;
+                filename += ext;
+                save(this.clean(...ROOT, ...coll.path, folder), filename, body);
             }
         }
     }
