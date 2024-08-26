@@ -67,7 +67,17 @@ class Collections {
   }
 
   item(item) {
-    return typeof item
+    let table = '<table>'
+    for (let [ field, value ] of Object.entries(item)) {
+      switch (field) {
+        case 'notes':
+        case 'attachments':
+          continue
+      }
+      table += `<tr><td>${ field }</td></tr>`
+    }
+    table += '</table>'
+    return table
   }
 
   public save(item, save) {
