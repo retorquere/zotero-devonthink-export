@@ -66,13 +66,20 @@ class Collections {
     return (dot < 1 || dot === (filename.length - 1)) ? [ filename, '' ] : [ filename.substring(0, dot), filename.substring(dot) ]
   }
 
+  item(item) {
+    return 'item'
+  }
+
   public save(item, save) {
-    const folder = item.itemType === 'note' ? '' : item.title
+    if (!item.itemType.match(/^(note|attachment)$/)) item.itemType = 'item'
+    const folder = item.itemType === 'item' ? item.title : ''
     const attachments = item.itemType === 'attachment' ? [ item ] : (item.attachments || [])
     const notes = item.itemType === 'note' ? [ item ] : (item.notes || [])
 
     const collections = (item.collections || []).map(key => this.collection[key]).filter(_ => _)
     if (!collections.length) collections.push(this.collection.$) // if the item is not in a collection, save it in the root.
+
+    if (item.itemType === 'item') notes.push({ ...item, note: this.item(item) })
 
     if (Zotero.getOption('exportFileData')) {
       for (const att of attachments) {
@@ -124,9 +131,17 @@ class Collections {
           if (!body.firstChild) continue
           if (body.firstChild instanceof Element && body.firstChild.tagName === 'DIV' && body.firstChild.getAttribute('data-schema-version') && body.children.length === 1) body = body.firstChild
 
-          let basename = body.firstChild instanceof Element && body.firstChild.tagName.match(/^(P|H1)$/) && body.firstChild.textContent ? body.firstChild.textContent : 'note'
+          let basename: string
+          if (note.itemType === 'item') {
+            basename = note.title || 'item'
+          }
+          else {
+            basename = body.firstChild instanceof Element && body.firstChild.tagName.match(/^(P|H1)$/) && body.firstChild.textContent
+            ? body.firstChild.textContent
+            : 'note'
+          }
 
-          const parts = this.clean(...ROOT, ...coll.path, folder, basename)
+          const parts = this.clean(...ROOT, ...coll.path, note.itemType === 'item' ? '' : folder, basename)
           const path = parts.join('/')
           let filename = `${path}.html`
           let postfix = 0
@@ -140,7 +155,7 @@ class Collections {
           if (postfix) filename += `_${postfix}`
           filename += '.html'
 
-          save(this.clean(...ROOT, ...coll.path, folder), filename, note.note)
+          save(this.clean(...ROOT, ...coll.path, note.itemType === 'item' ? '' : folder), filename, note.note)
         }
       }
     }
@@ -151,6 +166,7 @@ function doExport() {
   const collections = new Collections
 
   const save = (folder: string[], filename: string, body: string) => {
+    debug({ folder, filename })
     // create parent folder as a side effect
     const file = this.FileUtils.getDir('Home', folder, true, false)
     file.append(filename)
