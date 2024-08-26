@@ -87,6 +87,7 @@ class Collections {
   item(item) {
     let table = '<table>'
     for (let [ field, value ] of Object.entries(item)) {
+      let encode = true
       switch (field) {
         case 'version':
         case 'notes':
@@ -95,6 +96,9 @@ class Collections {
         case 'relations':
         case 'uri':
           continue
+        case 'title':
+          encode = false
+          break
         case 'tags':
           value = (value as any[]).map(tag => tag.tag || tag).join(', ')
           break
@@ -103,10 +107,11 @@ class Collections {
           continue
       }
       if (typeof value === 'number') value = `${value}`
+      if (encode) value = html(value as string)
       if (typeof value !== 'string') {
         value = `hey! ${field} is ${typeof value}`
       }
-      table += `<tr><td>${ html(field) }</td><td>${ html(value as string) }</td></tr>`
+      table += `<tr><td>${ html(field) }</td><td>${ value }</td></tr>`
     }
     table += '</table>'
     return table

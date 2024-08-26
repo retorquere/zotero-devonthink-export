@@ -17,7 +17,7 @@
   "browserSupport": "gcsv",
   "priority": 100,
   "inRepository": false,
-  "lastUpdated": "2024-08-26 08:25:26"
+  "lastUpdated": "2024-08-26 09:07:04"
 }
 
 // Components.utils.import("resource://gre/modules/FileUtils.jsm");
@@ -87,13 +87,18 @@ class Collections {
     item(item) {
         let table = '<table>';
         for (let [field, value] of Object.entries(item)) {
+            let encode = true;
             switch (field) {
                 case 'version':
                 case 'notes':
                 case 'attachments':
                 case 'collections':
                 case 'relations':
+                case 'uri':
                     continue;
+                case 'title':
+                    encode = false;
+                    break;
                 case 'tags':
                     value = value.map(tag => tag.tag || tag).join(', ');
                     break;
@@ -103,10 +108,12 @@ class Collections {
             }
             if (typeof value === 'number')
                 value = `${value}`;
+            if (encode)
+                value = html(value);
             if (typeof value !== 'string') {
                 value = `hey! ${field} is ${typeof value}`;
             }
-            table += `<tr><td>${html(field)}</td><td>${html(value)}</td></tr>`;
+            table += `<tr><td>${html(field)}</td><td>${value}</td></tr>`;
         }
         table += '</table>';
         return table;
