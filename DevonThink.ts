@@ -1,5 +1,5 @@
 declare const Zotero: any
-declare const OS: any
+declare const VERSION: string
 
 // Components.utils.import("resource://gre/modules/FileUtils.jsm");
 
@@ -163,9 +163,9 @@ class Collections {
             save(this.clean(...ROOT, ...coll.path, folder), filename, `{ URL = "${ att.url }"; }`)
           }
           else {
+            Zotero.write(`${filename}\n`)
             att.saveFile(filename, true)
           }
-          Zotero.write(`${filename}\n`)
         }
       }
     }
@@ -212,11 +212,13 @@ class Collections {
 function doExport() {
   const collections = new Collections
 
+  Zotero.write(`exported with ${VERSION}\n`)
+
   const save = (folder: string[], filename: string, body: string) => {
-    debug({ folder, filename })
     // create parent folder as a side effect
     const file = this.FileUtils.getDir('Home', folder, true, false)
     file.append(filename)
+    Zotero.write(file.path)
     if (file.exists()) file.remove(null)
 
     const fos = this.Components.classes['@mozilla.org/network/file-output-stream;1'].createInstance(this.Components.interfaces.nsIFileOutputStream)

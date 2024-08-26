@@ -25,4 +25,4 @@ const header = JSON.stringify({
   lastUpdated: fs.statSync(`${translator}.ts`).mtime.toISOString().replace('T', ' ').replace(/\..*/, ''),
 }, null, 2)
 
-fs.writeFileSync(`${translator}.js`, header + `\n\n// version: ${process.env.VERSION}\n\n` + body)
+fs.writeFileSync(`${translator}.js`, header + `\n\nconst VERSION = '${process.env.VERSION}'\n\n` + body)
