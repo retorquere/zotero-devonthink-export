@@ -19,6 +19,16 @@ function debug(msg) {
   Zotero.debug(`DevonThink: ${msg}`)
 }
 
+const entity: Record<string, string> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+}
+function html(str: string): string {
+  return str.replace(/[<>&"]/g, (c: string) => entity[c])
+}
+
 class Collections {
   private saved: Set<string> = new Set
 
@@ -66,18 +76,37 @@ class Collections {
     return (dot < 1 || dot === (filename.length - 1)) ? [ filename, '' ] : [ filename.substring(0, dot), filename.substring(dot) ]
   }
 
+  creator(cr) {
+    let tr = '<tr>'
+    tr += `<td>${ html(cr.creatorType) }</td>`
+    tr += `<td>${ html(cr.name || [cr.lastName, cr.firstName].filter(_ => _).join(', ')) }</td>`
+    tr += '</tr>'
+    return tr
+  }
+
   item(item) {
     let table = '<table>'
     for (let [ field, value ] of Object.entries(item)) {
       switch (field) {
+        case 'version':
         case 'notes':
         case 'attachments':
+        case 'collections':
+        case 'relations':
+        case 'uri':
+          continue
+        case 'tags':
+          value = (value as any[]).map(tag => tag.tag || tag).join(', ')
+          break
+        case 'creators':
+          table += (value as any[]).map(cr => this.creator(cr)).join('')
           continue
       }
+      if (typeof value === 'number') value = `${value}`
       if (typeof value !== 'string') {
-        value = `${field} is ${typeof value}`
+        value = `hey! ${field} is ${typeof value}`
       }
-      table += `<tr><td>${ field }</td><td>${ value }</td></tr>`
+      table += `<tr><td>${ html(field) }</td><td>${ html(value as string) }</td></tr>`
     }
     table += '</table>'
     return table

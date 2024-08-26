@@ -17,7 +17,7 @@
   "browserSupport": "gcsv",
   "priority": 100,
   "inRepository": false,
-  "lastUpdated": "2024-08-26 08:08:06"
+  "lastUpdated": "2024-08-26 08:25:26"
 }
 
 // Components.utils.import("resource://gre/modules/FileUtils.jsm");
@@ -26,6 +26,15 @@ function debug(msg) {
     if (typeof msg !== 'string')
         msg = JSON.stringify(msg);
     Zotero.debug(`DevonThink: ${msg}`);
+}
+const entity = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+};
+function html(str) {
+    return str.replace(/[<>&"]/g, (c) => entity[c]);
 }
 class Collections {
     constructor() {
@@ -68,18 +77,36 @@ class Collections {
         const dot = filename.lastIndexOf('.');
         return (dot < 1 || dot === (filename.length - 1)) ? [filename, ''] : [filename.substring(0, dot), filename.substring(dot)];
     }
+    creator(cr) {
+        let tr = '<tr>';
+        tr += `<td>${html(cr.creatorType)}</td>`;
+        tr += `<td>${html(cr.name || [cr.lastName, cr.firstName].filter(_ => _).join(', '))}</td>`;
+        tr += '</tr>';
+        return tr;
+    }
     item(item) {
         let table = '<table>';
         for (let [field, value] of Object.entries(item)) {
             switch (field) {
+                case 'version':
                 case 'notes':
                 case 'attachments':
+                case 'collections':
+                case 'relations':
+                    continue;
+                case 'tags':
+                    value = value.map(tag => tag.tag || tag).join(', ');
+                    break;
+                case 'creators':
+                    table += value.map(cr => this.creator(cr)).join('');
                     continue;
             }
+            if (typeof value === 'number')
+                value = `${value}`;
             if (typeof value !== 'string') {
-                value = `${field} is ${typeof value}`;
+                value = `hey! ${field} is ${typeof value}`;
             }
-            table += `<tr><td>${field}</td><td>${value}</td></tr>`;
+            table += `<tr><td>${html(field)}</td><td>${html(value)}</td></tr>`;
         }
         table += '</table>';
         return table;
