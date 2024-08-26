@@ -15,6 +15,7 @@ type Collection = {
 }
 
 function debug(msg) {
+  if (typeof msg !== 'string') msg = JSON.stringify(msg)
   Zotero.debug(`DevonThink: ${msg}`)
 }
 
@@ -42,8 +43,6 @@ class Collections {
         path: [], // dummy
       }))
     }
-
-    debug(JSON.stringify(this.collection.$, null, 2))
   }
 
   walk(collection: Collection, parent: string[] = []) {
@@ -59,7 +58,7 @@ class Collections {
   }
 
   clean(...filenames: string[]): string[] {
-    return filenames.map(filename => filename.replace(/[\x00-\x1F\x7F\/\\:*?"<>|$%]/g, encodeURIComponent)).filter(_ => _)
+    return filenames.map(filename => filename.replace(/[\/\\:*?"<>|$%]/g, ch => encodeURIComponent(ch))).filter(_ => _)
   }
 
   split(filename) {
@@ -67,7 +66,7 @@ class Collections {
     return (dot < 1 || dot === (filename.length - 1)) ? [ filename, '' ] : [ filename.substring(0, dot), filename.substring(dot) ]
   }
 
-  public save(item, saveNote) {
+  public save(item, save) {
     const folder = item.itemType === 'note' ? '' : item.title
     const attachments = item.itemType === 'attachment' ? [ item ] : (item.attachments || [])
     const notes = item.itemType === 'note' ? [ item ] : (item.notes || [])
@@ -77,13 +76,24 @@ class Collections {
 
     if (Zotero.getOption('exportFileData')) {
       for (const att of attachments) {
-        if (!att.defaultPath) continue
+        let base: string, ext: string
 
-        const [ base, ext ] = this.split(att.filename)
-        const subdir = att.contentType === 'text/html' ? base : ''
+        let subdir = ''
+        if (att.linkMode === 'linked_url') {
+          base = att.title || 'URL'
+          ext = '.webloc'
+        }
+        else if (att.filename) {
+          [ base, ext ] = this.split(att.filename)
+          if (att.contentType === 'text/html') subdir = base
+        }
+        else {
+          continue
+        }
 
         for (const coll of collections) {
-          const path = this.clean(...coll.path, folder, subdir, base).join('/')
+          const parts = this.clean(...coll.path, folder, subdir, base)
+          const path = parts.join('/')
 
           let filename = `${path}${ext}`
           let postfix = 0
@@ -92,7 +102,15 @@ class Collections {
           }
           this.saved.add(filename.toLowerCase())
 
-          att.saveFile(filename, true)
+          if (att.linkMode === 'linked_url') {
+            filename = parts.pop()
+            if (postfix) filename += `_${postfix}`
+            filename += ext
+            save(this.clean(...ROOT, ...coll.path, folder), filename, `{ URL = "${ att.url }"; }`)
+          }
+          else {
+            att.saveFile(filename, true)
+          }
           Zotero.write(`${filename}\n`)
         }
       }
@@ -108,7 +126,8 @@ class Collections {
 
           let basename = body.firstChild instanceof Element && body.firstChild.tagName.match(/^(P|H1)$/) && body.firstChild.textContent ? body.firstChild.textContent : 'note'
 
-          const path = this.clean(...ROOT, ...coll.path, folder, basename).join('/')
+          const parts = this.clean(...ROOT, ...coll.path, folder, basename)
+          const path = parts.join('/')
           let filename = `${path}.html`
           let postfix = 0
           while (this.saved.has(filename.toLowerCase())) {
@@ -117,9 +136,11 @@ class Collections {
           this.saved.add(filename.toLowerCase())
           Zotero.write(`${filename}\n`)
 
-          if (postfix) basename += `_${postfix}`
+          filename = parts.pop()
+          if (postfix) filename += `_${postfix}`
+          filename += '.html'
 
-          saveNote(this.clean(...ROOT, ...coll.path, folder), `${basename}.html`, note.note)
+          save(this.clean(...ROOT, ...coll.path, folder), filename, note.note)
         }
       }
     }
@@ -129,7 +150,7 @@ class Collections {
 function doExport() {
   const collections = new Collections
 
-  const saveNote = (folder: string[], filename: string, body: string) => {
+  const save = (folder: string[], filename: string, body: string) => {
     // create parent folder as a side effect
     const file = this.FileUtils.getDir('Home', folder, true, false)
     file.append(filename)
@@ -149,6 +170,6 @@ function doExport() {
 
   let item
   while ((item = Zotero.nextItem())) {
-    collections.save(item, saveNote)
+    collections.save(item, save)
   }
 }
