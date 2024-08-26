@@ -3,7 +3,7 @@ declare const OS: any
 
 // Components.utils.import("resource://gre/modules/FileUtils.jsm");
 
-const ROOT = [ 'Downloads', 'My Library' ]
+const ROOT = [ 'Downloads', 'Exported Items' ]
 
 type Collection = {
   type: 'collection' | 'item'

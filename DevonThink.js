@@ -17,11 +17,13 @@
   "browserSupport": "gcsv",
   "priority": 100,
   "inRepository": false,
-  "lastUpdated": "2024-08-26 09:07:04"
+  "lastUpdated": "2024-08-26 12:59:37"
 }
 
+// version: 96fa0bc
+
 // Components.utils.import("resource://gre/modules/FileUtils.jsm");
-const ROOT = ['Downloads', 'My Library'];
+const ROOT = ['Downloads', 'Exported Items'];
 function debug(msg) {
     if (typeof msg !== 'string')
         msg = JSON.stringify(msg);
